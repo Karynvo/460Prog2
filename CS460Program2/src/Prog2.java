@@ -974,11 +974,13 @@ public class Prog2
 						         // add bucket to hash bucket file
 						         tempBucket.writeBucket(hashBucketStream, directory[comparator]);  
 					         } else if (tempBucket.entries >= 50 && tempBucket.localDepth < globalDepth){
-					        	 // split bucket into 10 (10 new ones)
 					        	 
+					        	 // split bucket into 10 (10 new ones)
 					        	 for (int i = 0; i < 10 ; i++){
 					        		 Bucket newBucket = new Bucket();
 					        		 
+					        		 // for each entry, check the new digit we're splitting by
+					        		 // if it's the same as i, add it to the new bucket that represents that splitting
 					        		 for (Entry entry : tempBucket.slotsArray){
 					        			 if (Integer.parseInt(Integer.toString(entry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==i){
 					        				 newBucket.addEntry(entry);
@@ -986,16 +988,31 @@ public class Prog2
 					        		 }
 					        		 
 					        		 //update index
+					        		 
+					        		 // the new "20" bucket will take the place of the old bucket "2" in the hash bucket file
+					        		 // TODO have empty buckets point to nothing
+					        		 int hashBucketPtr = 0;
+					        		 if(i == 0)
+					        			 hashBucketPtr = directory[comparator];
+					        		 else
+					        			 hashBucketPtr = (int) hashBucketStream.length();
+					        		 
 					        		 directory[Integer.parseInt(Integer.toString(newBucket.slotsArray[0].getKey())
-					        				 .substring(tempBucket.localDepth, tempBucket.localDepth+1))] = (int) hashBucketStream.length();
+					        				 .substring(0, tempBucket.localDepth+1))] = hashBucketPtr;
+					        		 
+					        		// increment local depth for involved buckets
+					        		 newBucket.localDepth = tempBucket.localDepth+1;
 					        		 
 					        		 //write bucket to disk
-					        		 newBucket.writeBucket(hashBucketStream, (int) hashBucketStream.length());
+					        		 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
+					        		 
+					        		 // add new entry
 					        		 
 					        	 }
-					        	 // increment local depth for involved buckets
 					        	 // divvy up all values
-					         } 
+					         } else{ // entries are at capacity and local depth == global depth; directory needs to grow
+					        	 ;
+					         }
 					         
 					         
 					         
