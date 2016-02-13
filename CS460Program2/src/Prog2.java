@@ -784,7 +784,6 @@ class Bucket{
 	 * that bucket into memory.
 	 */
 	public void readBucket(RandomAccessFile buckets, int pointer){
-		System.out.println("In readBucket");
 
 		try {
 			buckets.seek(pointer);
@@ -813,7 +812,6 @@ class Bucket{
 	 * the hash bucket file with updated contents.
 	 */
 	public void writeBucket(RandomAccessFile buckets, int pointer){
-		System.out.println("In writeBucket");
 		
 		try {
 			buckets.seek(pointer);
@@ -906,10 +904,10 @@ public class Prog2
 		    	 SpmDataRecord curr;
 		    	 String line = fromDATFileStream.readLine();
 		    
-	//		    while (line != null){
-		    	 for (int j = 0; j < 150 ; j++){
+			    while (line != null){
+//		    	 for (int j = 0; j < 200 ; j++){
 	//			    System.out.println("Getting at most 10000 records...");
-	//			    for (int i = 0; i < 10 && line!=null; i++){	 
+//				    for (int i = 0; i < 10 && line!=null; i++){	 
 				    	
 							 curr = new SpmDataRecord(line);
 							 curr.dumpObject(databaseFileStream);
@@ -953,6 +951,11 @@ public class Prog2
 					          */
 							 
 					         Entry newEntry = new Entry(curr.getObjectIdentifier(), databasePtr*SpmDataRecord.RECORD_LENGTH);
+					         
+					         boolean addSuccess = false;
+					         
+					         while (addSuccess == false){
+					         
 					         // Get key as primitive int, convert to String using toString,
 					         // Get leftmost digit, then convert back to int
 					         int comparator = Integer.parseInt((Integer.toString(newEntry.key)).substring(0,globalDepth));
@@ -960,7 +963,6 @@ public class Prog2
 					         Bucket tempBucket = new Bucket();
 					         // check to see if there exists a valid pointer to a bucket in the directory
 					         if(directory[comparator] == -99){
-					        	 System.out.println("Creating new bucket for comparator " + comparator);
 					        	 directory[comparator] = hashBucketFilePtr;
 					        	 hashBucketFilePtr+=BUCKET_SIZE;
 					         }else{
@@ -969,33 +971,49 @@ public class Prog2
 					         }
 					         
 					         if (tempBucket.entries<50 ){
+					        	 System.out.println("Added entry (<50)");
 						         // add entry to bucket
 						         tempBucket.addEntry(newEntry);
+						         addSuccess = true;
 						         // add bucket to hash bucket file
 						         tempBucket.writeBucket(hashBucketStream, directory[comparator]);  
 					         } else if (tempBucket.entries >= 50 && tempBucket.localDepth < globalDepth){
-					        	 
+					        	 System.out.println("SPLIT BUCKET!!!!!!!!!!!!!!");
 					        	 // split bucket into 10 (10 new ones)
-					        	 for (int i = 0; i < 10 ; i++){
+					        	 //splitBucket(tempBucket, newEntry, directory, comparator, hashBucketStream);
+					        	 
+					        	 
+					        	 for (int index = 0; index < 10 ; index++){
 					        		 Bucket newBucket = new Bucket();
+					        		 
+					        		 try{
+						        	 // divvy up all values
 					        		 
 					        		 // for each entry, check the new digit we're splitting by
 					        		 // if it's the same as i, add it to the new bucket that represents that splitting
 					        		 for (Entry entry : tempBucket.slotsArray){
-					        			 if (Integer.parseInt(Integer.toString(entry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==i){
+					        			 if (Integer.parseInt(Integer.toString(entry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==index){
 					        				 newBucket.addEntry(entry);
+//					        				 addSuccess = true;
 					        			 }
 					        		 }					        		 
 					        		 
 					        		 // if correct new bucket, add the newEntry which caused the tipping point in the first place
-				        			 if (Integer.parseInt(Integer.toString(newEntry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==i){
-				        				 newBucket.addEntry(newEntry);
-				        			 }
+					    			 if (Integer.parseInt(Integer.toString(newEntry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==index){
+					    				 
+					    				 if (newBucket.entries>=50){
+					    					 System.out.println("newBucket already has 50!");
+					    					 addSuccess = false;
+					    				 }else{
+					    					 newBucket.addEntry(newEntry); 
+					    					 addSuccess = true;
+					    				 }
+					    			 }
 					        		 
 					        		 
 					        		 // the new "20" bucket will take the place of the old bucket "2" in the hash bucket file
 					        		 int hashBucketPtr = 0;
-					        		 if(i == 0){
+					        		 if(index == 0){
 					        			 hashBucketPtr = directory[comparator];
 					        		 }else if(newBucket.slotsArray.length==0){
 					        			 hashBucketPtr = -99;
@@ -1004,28 +1022,114 @@ public class Prog2
 					        		 }
 					        		 
 					        		 //update index
-					        		 directory[Integer.parseInt(Integer.toString(newBucket.slotsArray[0].getKey())
-					        				 .substring(0, tempBucket.localDepth+1))] = hashBucketPtr;
-					        		 
+					        		 directory[((comparator/10)*10)+index] = hashBucketPtr;
+//					        		 directory[comparator] = hashBucketPtr;
+
 					        		 // increment local depth for involved buckets
 					        		 newBucket.localDepth = tempBucket.localDepth+1;
-	
 					        		 //write bucket to disk
 					        		 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
 					        		 
+					        		 }catch(Exception e){
+					        			 System.out.println("Failure detected in SPLIT BUCKET logic");
+					        			 e.printStackTrace();
+					        		 }
 					        		 
 					        	 }
-					        	 // divvy up all values
+
 					         } else{ // entries are at capacity and local depth == global depth; directory needs to grow
-					        	 ;
+					        	 System.out.println("SPLIT DIRECTORY!!!!!!!!!!!!!!!!");
+					        	 int[] tempDir = new int[directory.length * 10];
+					        	 
+					        	 globalDepth++;
+					        	 //For all values in directory, add to new directory accordingly
+					        	 // For each bucket in the directory, only if it is the bucket we want to grow, make it grow
+					        	 // Else populate the directory range where k = old, (k*10) + onesPlace = old ptr
+					        	 for (int k = 0; k < directory.length; k++) {
+					     			if (k != comparator) {
+					     				// populate new array with range k0-k9 with same ptr value as
+					     				// directory[k]
+					     				for (int onesPlace = 0; onesPlace < 10; onesPlace++) {
+					     					int newIndex = (k * 10) + onesPlace;
+					     					tempDir[newIndex] = directory[k];
+					     				}
+					     			} else { // this is the bucket we want to split
+
+					     				// split bucket into 10 (10 new ones)
+					     				// i = the ones place in new bucket
+					     				for (int i = 0; i < 10; i++) {
+					     					Bucket newBucket = new Bucket();
+
+					     					// divvy up all values
+
+					     					try {
+					     						// for each entry, check the new digit we're splitting
+					     						// by
+					     						// if it's the same as i, add it to the new bucket that
+					     						// represents that splitting
+					     						for (Entry entry : tempBucket.slotsArray) {
+					     							if (Integer.parseInt(Integer.toString(entry.key).substring(tempBucket.localDepth,
+					     									tempBucket.localDepth + 1)) == i) {
+					     								newBucket.addEntry(entry);
+					     							}
+					     						}
+
+					     						// if correct new bucket, add the newEntry which caused
+					     						// the tipping point in the first place
+					     						if (Integer.parseInt(Integer.toString(newEntry.key).substring(tempBucket.localDepth,
+					     								tempBucket.localDepth + 1)) == i) {
+					     							
+					     							if(newBucket.entries>=50){
+					     								addSuccess = false;
+					     							}else{
+					     								newBucket.addEntry(newEntry);
+					     								addSuccess = true;
+					     							}
+					     						}
+
+					     						// the new "20" bucket will take the place of the old
+					     						// bucket "2" in the hash bucket file
+					     						int hashBucketPtr = 0;
+					     						if (i == 0) {
+					     							hashBucketPtr = directory[comparator];
+					     						} else if (newBucket.slotsArray.length == 0) {
+					     							hashBucketPtr = -99;
+					     						} else {
+					     							hashBucketPtr = (int) hashBucketStream.length();
+					     						}
+
+					     						// update index
+					     						tempDir[((comparator * 10) + i)] = hashBucketPtr;
+					     						// directory[Integer.parseInt(Integer.toString(newBucket.slotsArray[0].getKey())
+					     						// .substring(0, tempBucket.localDepth+1))] =
+					     						// hashBucketPtr;
+
+					     						// increment local depth for involved buckets
+					     						newBucket.localDepth = tempBucket.localDepth + 1;
+
+					     						// write bucket to disk
+					     						newBucket.writeBucket(hashBucketStream, hashBucketPtr);
+					     					} catch (Exception e) {
+					     						System.out.println("ERROR IN SPLIT BUCKET!!!");
+					     						e.printStackTrace();
+					     					}
+					     				}
+					     			}
+					     		}
+					        	 
+					        	 
+					        	 //tempDir = splitDirectory(tempDir, tempDir, comparator, tempBucket, newEntry, hashBucketStream);
+					        	 
+					        	 directory = tempDir;
 					         }
 					         
-					         
+		    	 }
 					         
 							 line = fromDATFileStream.readLine();
 							 databasePtr++;
 //				    }
 			    }
+		    	System.out.println("Break");
 		     }catch(Exception NullPointerException){
 		    	 System.out.println("End of file!");
 		     }
@@ -1073,7 +1177,7 @@ public class Prog2
 	         /*
 	          * TEST METHODS
 	          */
-	         dumpBuckets(hashBucketStream, directory);
+//	         dumpBuckets(hashBucketStream, directory);
 	         
 	         
 
@@ -1093,6 +1197,8 @@ public class Prog2
 	                              + "the database file!");
 	         }
 	     }
+
+	
 
 //	     /*
 //	      * This is a utility method used to confirm the integrity of a bucket written to disk. Because testing.
@@ -1126,20 +1232,14 @@ public class Prog2
 //	    	
 //	     }
 	     
-	     /*
+	     
+
+		/*
 	      * This is a utility used to see the contents of every bucket written to disk
 	      */
 	     private static void dumpBuckets(RandomAccessFile buckets, int[] dir){
 	    	 
 	    	 System.out.println("BUCKET DUMP");
-	    	 
-	    	 int size = 0;
-			try {
-				size = (int) (buckets.length()/816);	//816 = BUCKET_SIZE
-			} catch (IOException e2) {
-				System.out.println("Error calculating size of hash bucket");
-				e2.printStackTrace();
-			} 
 	    	 
 		 		try {
 		 			buckets.seek(0);
