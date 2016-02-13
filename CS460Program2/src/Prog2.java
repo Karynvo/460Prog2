@@ -895,7 +895,7 @@ public class Prog2
 	         int[] directory = {-99, -99, -99, -99, -99, -99, -99, -99, -99, -99};
 	         int globalDepth = 1;	//This is the global depth of our directory
 	         int databasePtr = 0;
-	         int hashBucketFilePtr = 0;
+//	         int hashBucketFilePtr = 0;
 	         
 		  
 		     // Read spmcat.dat line by line, creating SpmDataRecords
@@ -904,8 +904,8 @@ public class Prog2
 		    	 SpmDataRecord curr;
 		    	 String line = fromDATFileStream.readLine();
 		    
-//			    while (line != null){
-		    	 for (int j = 0; j < 200 ; j++){
+			    while (line != null){
+//		    	 for (int j = 0; j < 200 ; j++){
 	//			    System.out.println("Getting at most 10000 records...");
 //				    for (int i = 0; i < 10 && line!=null; i++){	 
 				    	
@@ -961,10 +961,29 @@ public class Prog2
 					         int comparator = Integer.parseInt((Integer.toString(newEntry.key)).substring(0,globalDepth));
 					         System.out.println("Comparator: " + comparator);
 					         Bucket tempBucket = new Bucket();
+					         boolean bucketNotFound = false;
 					         // check to see if there exists a valid pointer to a bucket in the directory
 					         if(directory[comparator] == -99){
-					        	 directory[comparator] = hashBucketFilePtr;
-					        	 hashBucketFilePtr+=BUCKET_SIZE;
+					        	 //directory[comparator] = (int) hashBucketStream.length();
+					        	 //find local depth of new bucket to create by checking reduced comparator
+					        	 int check = comparator/10;
+					        	 int prevCheck = check;
+					        	 while (directory[check] != -99 && check != 0){
+					        		 prevCheck = check;
+					        		 check = check/10;
+					        	 }
+					        	 if (check!=0){
+					        		 //add to bucket pointed to by directory[check]
+					        		 tempBucket.readBucket(hashBucketStream, directory[check]);
+					        	 }else{
+					        		 //make a new bucket
+					        		 // Have directory point to new bucket at prevCheck
+					        		 bucketNotFound = true;
+					        		 directory[prevCheck] = (int) hashBucketStream.length();
+					        		 
+					        	 }
+					        	 
+//					        	 hashBucketFilePtr+=BUCKET_SIZE;
 					         }else{
 					        	 System.out.println("Bucket found for comparator " + comparator);
 					        	 tempBucket.readBucket(hashBucketStream, directory[comparator]);
@@ -974,9 +993,16 @@ public class Prog2
 					        	 System.out.println("Added entry (<50)");
 						         // add entry to bucket
 						         tempBucket.addEntry(newEntry);
+//						         tempBucket.localDepth = 
 						         addSuccess = true;
 						         // add bucket to hash bucket file
-						         tempBucket.writeBucket(hashBucketStream, directory[comparator]);  
+						         
+						         if(bucketNotFound){
+						        	 tempBucket.writeBucket(hashBucketStream, (int)hashBucketStream.length());
+						         }else{
+						        	 tempBucket.writeBucket(hashBucketStream, directory[comparator]);  
+						         }
+						         
 					         } else if (tempBucket.entries >= 50 && tempBucket.localDepth < globalDepth){
 					        	 System.out.println("SPLIT BUCKET!!!!!!!!!!!!!!");
 					        	 // split bucket into 10 (10 new ones)
