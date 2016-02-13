@@ -66,7 +66,7 @@ import java.util.ArrayList;
 ||
 ||  Class SpmDataRecord 
 ||
-||         Author:  Kristoffer Cabulong
+||         Author:  Kristoffer Cabulong 
 ||
 ||        Purpose:  The class's primary purpose is to hold each of the 27 fields
 ||					in a row of the spm data. It has a constructors that support
@@ -985,28 +985,34 @@ public class Prog2
 					        			 if (Integer.parseInt(Integer.toString(entry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==i){
 					        				 newBucket.addEntry(entry);
 					        			 }
+					        		 }					        		 
+					        		 
+					        		 // if correct new bucket, add the newEntry which caused the tipping point in the first place
+				        			 if (Integer.parseInt(Integer.toString(newEntry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==i){
+				        				 newBucket.addEntry(newEntry);
+				        			 }
+					        		 
+					        		 
+					        		 // the new "20" bucket will take the place of the old bucket "2" in the hash bucket file
+					        		 int hashBucketPtr = 0;
+					        		 if(i == 0){
+					        			 hashBucketPtr = directory[comparator];
+					        		 }else if(newBucket.slotsArray.length==0){
+					        			 hashBucketPtr = -99;
+					        		 }else{
+					        			 hashBucketPtr = (int) hashBucketStream.length();
 					        		 }
 					        		 
 					        		 //update index
-					        		 
-					        		 // the new "20" bucket will take the place of the old bucket "2" in the hash bucket file
-					        		 // TODO have empty buckets point to nothing
-					        		 int hashBucketPtr = 0;
-					        		 if(i == 0)
-					        			 hashBucketPtr = directory[comparator];
-					        		 else
-					        			 hashBucketPtr = (int) hashBucketStream.length();
-					        		 
 					        		 directory[Integer.parseInt(Integer.toString(newBucket.slotsArray[0].getKey())
 					        				 .substring(0, tempBucket.localDepth+1))] = hashBucketPtr;
 					        		 
-					        		// increment local depth for involved buckets
+					        		 // increment local depth for involved buckets
 					        		 newBucket.localDepth = tempBucket.localDepth+1;
-					        		 
+	
 					        		 //write bucket to disk
 					        		 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
 					        		 
-					        		 // add new entry
 					        		 
 					        	 }
 					        	 // divvy up all values
