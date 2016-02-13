@@ -904,8 +904,8 @@ public class Prog2
 		    	 SpmDataRecord curr;
 		    	 String line = fromDATFileStream.readLine();
 		    
-			    while (line != null){
-//		    	 for (int j = 0; j < 200 ; j++){
+//			    while (line != null){
+		    	 for (int j = 0; j < 200 ; j++){
 	//			    System.out.println("Getting at most 10000 records...");
 //				    for (int i = 0; i < 10 && line!=null; i++){	 
 				    	
@@ -1013,22 +1013,26 @@ public class Prog2
 					        		 
 					        		 // the new "20" bucket will take the place of the old bucket "2" in the hash bucket file
 					        		 int hashBucketPtr = 0;
-					        		 if(index == 0){
-					        			 hashBucketPtr = directory[comparator];
-					        		 }else if(newBucket.slotsArray.length==0){
+					        		 if(newBucket.entries==0){
 					        			 hashBucketPtr = -99;
+					        		 }else if(index == 0){
+					        			 hashBucketPtr = directory[comparator];
 					        		 }else{
 					        			 hashBucketPtr = (int) hashBucketStream.length();
 					        		 }
 					        		 
 					        		 //update index
-					        		 directory[((comparator/10)*10)+index] = hashBucketPtr;
+					        		 int bucketIndex = ((comparator/10)*10)+index;
+					        		 System.out.println("bucketIndex is: " + bucketIndex);
+					        		 directory[bucketIndex] = hashBucketPtr;
 //					        		 directory[comparator] = hashBucketPtr;
 
 					        		 // increment local depth for involved buckets
 					        		 newBucket.localDepth = tempBucket.localDepth+1;
+					        		 
 					        		 //write bucket to disk
-					        		 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
+					        		 if(hashBucketPtr > -1)
+					        			 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
 					        		 
 					        		 }catch(Exception e){
 					        			 System.out.println("Failure detected in SPLIT BUCKET logic");
@@ -1051,6 +1055,7 @@ public class Prog2
 					     				// directory[k]
 					     				for (int onesPlace = 0; onesPlace < 10; onesPlace++) {
 					     					int newIndex = (k * 10) + onesPlace;
+					     					System.out.println("newIndex is: " + newIndex);
 					     					tempDir[newIndex] = directory[k];
 					     				}
 					     			} else { // this is the bucket we want to split
@@ -1090,16 +1095,18 @@ public class Prog2
 					     						// the new "20" bucket will take the place of the old
 					     						// bucket "2" in the hash bucket file
 					     						int hashBucketPtr = 0;
-					     						if (i == 0) {
-					     							hashBucketPtr = directory[comparator];
-					     						} else if (newBucket.slotsArray.length == 0) {
+					     						if (newBucket.entries == 0) {
 					     							hashBucketPtr = -99;
+					     						} else if (i == 0) {
+					     							hashBucketPtr = directory[comparator];
 					     						} else {
 					     							hashBucketPtr = (int) hashBucketStream.length();
 					     						}
 
 					     						// update index
-					     						tempDir[((comparator * 10) + i)] = hashBucketPtr;
+					     						int newIndex2 = (k * 10) + i;
+						     					System.out.println("newIndex2 is: " + newIndex2);
+					     						tempDir[newIndex2] = hashBucketPtr;
 					     						// directory[Integer.parseInt(Integer.toString(newBucket.slotsArray[0].getKey())
 					     						// .substring(0, tempBucket.localDepth+1))] =
 					     						// hashBucketPtr;
@@ -1108,7 +1115,8 @@ public class Prog2
 					     						newBucket.localDepth = tempBucket.localDepth + 1;
 
 					     						// write bucket to disk
-					     						newBucket.writeBucket(hashBucketStream, hashBucketPtr);
+					     						if(hashBucketPtr > -1)
+					     							newBucket.writeBucket(hashBucketStream, hashBucketPtr);
 					     					} catch (Exception e) {
 					     						System.out.println("ERROR IN SPLIT BUCKET!!!");
 					     						e.printStackTrace();
