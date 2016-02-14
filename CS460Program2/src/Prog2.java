@@ -895,7 +895,13 @@ public class Prog2
 	         int[] directory = {-99, -99, -99, -99, -99, -99, -99, -99, -99, -99};
 	         int globalDepth = 1;	//This is the global depth of our directory
 	         int databasePtr = 0;
-//	         int hashBucketFilePtr = 0;
+	         
+	         // Now, create the initial 10 buckets, reference them using the directory, and then write to disk
+	         for (int b = 0; b < 10; b++){
+	        	 Bucket initialBucket = new Bucket();
+	        	 directory[b] = (int) hashBucketStream.length();
+	        	 initialBucket.writeBucket(hashBucketStream, directory[b]);
+	         }
 	         
 		  
 		     // Read spmcat.dat line by line, creating SpmDataRecords
@@ -904,8 +910,8 @@ public class Prog2
 		    	 SpmDataRecord curr;
 		    	 String line = fromDATFileStream.readLine();
 		    
-			    while (line != null){
-//		    	 for (int j = 0; j < 200 ; j++){
+//			    while (line != null){
+		    	 for (int j = 0; j < 20 ; j++){
 	//			    System.out.println("Getting at most 10000 records...");
 //				    for (int i = 0; i < 10 && line!=null; i++){	 
 				    	
@@ -959,52 +965,57 @@ public class Prog2
 					         // Get key as primitive int, convert to String using toString,
 					         // Get leftmost digit, then convert back to int
 					         int comparator = Integer.parseInt((Integer.toString(newEntry.key)).substring(0,globalDepth));
-					         System.out.println("Comparator: " + comparator);
+//					         System.out.println("Comparator: " + comparator);
 					         Bucket tempBucket = new Bucket();
-					         boolean bucketNotFound = false;
+//					         boolean bucketNotFound = false;
 					         // check to see if there exists a valid pointer to a bucket in the directory
-					         if(directory[comparator] == -99){
-					        	 //directory[comparator] = (int) hashBucketStream.length();
-					        	 //find local depth of new bucket to create by checking reduced comparator
-					        	 int check = comparator/10;
-					        	 int prevCheck = check;
-					        	 while (directory[check] != -99 && check != 0){
-					        		 prevCheck = check;
-					        		 check = check/10;
-					        	 }
-					        	 if (check!=0){
-					        		 //add to bucket pointed to by directory[check]
-					        		 tempBucket.readBucket(hashBucketStream, directory[check]);
-					        	 }else{
-					        		 //make a new bucket
-					        		 // Have directory point to new bucket at prevCheck
-					        		 bucketNotFound = true;
-					        		 directory[prevCheck] = (int) hashBucketStream.length();
-					        		 
-					        	 }
-					        	 
-//					        	 hashBucketFilePtr+=BUCKET_SIZE;
-					         }else{
-					        	 System.out.println("Bucket found for comparator " + comparator);
+//					         if(directory[comparator] == -99){
+//					        	 //directory[comparator] = (int) hashBucketStream.length();
+//					        	 //find local depth of new bucket to create by checking reduced comparator
+//					        	 int check = comparator;
+//					        	 int prevCheck = check;
+//					        	 int step = 10;
+//					        	 while (directory[check] == -99 && check != 0){
+//					        		 prevCheck = check;
+//					        		 check = check/step * step;
+//					        		 step = step * 10;
+//					        	 }
+//					        	 if (check!=0){
+//					        		 //add to bucket pointed to by directory[check]
+//					        		 tempBucket.readBucket(hashBucketStream, directory[check]);
+//					        	 }else{
+//					        		 //make a new bucket
+//					        		 // Have directory point to new bucket at prevCheck
+//					        		 bucketNotFound = true;
+//					        		 directory[prevCheck] = (int) hashBucketStream.length();
+//					        		 
+//					        	 }
+//					        	 
+////					        	 hashBucketFilePtr+=BUCKET_SIZE;
+//					         }else{
+//					        	 System.out.println("Bucket found for comparator " + comparator);
 					        	 tempBucket.readBucket(hashBucketStream, directory[comparator]);
-					         }
+//					         }
+					         
+//					         int bucketPtr = findBucket(comparator, )
 					         
 					         if (tempBucket.entries<50 ){
-					        	 System.out.println("Added entry (<50)");
+//					        	 System.out.println("Added entry (<50)");
 						         // add entry to bucket
 						         tempBucket.addEntry(newEntry);
-//						         tempBucket.localDepth = 
 						         addSuccess = true;
 						         // add bucket to hash bucket file
+						         tempBucket.writeBucket(hashBucketStream, directory[comparator]);
 						         
-						         if(bucketNotFound){
-						        	 tempBucket.writeBucket(hashBucketStream, (int)hashBucketStream.length());
-						         }else{
-						        	 tempBucket.writeBucket(hashBucketStream, directory[comparator]);  
-						         }
+//						         if(bucketNotFound){
+//						        	 tempBucket.writeBucket(hashBucketStream, (int)hashBucketStream.length());
+//						         }else{
+//						        	 tempBucket.writeBucket(hashBucketStream, directory[comparator]);  
+//						         }
 						         
 					         } else if (tempBucket.entries >= 50 && tempBucket.localDepth < globalDepth){
-					        	 System.out.println("SPLIT BUCKET!!!!!!!!!!!!!!");
+					        	 
+					        //	 System.out.println("SPLIT BUCKET!!!!!!!!!!!!!! Bucket to split is at " + directory[comparator]);
 					        	 // split bucket into 10 (10 new ones)
 					        	 //splitBucket(tempBucket, newEntry, directory, comparator, hashBucketStream);
 					        	 
@@ -1028,7 +1039,7 @@ public class Prog2
 					    			 if (Integer.parseInt(Integer.toString(newEntry.key).substring(tempBucket.localDepth, tempBucket.localDepth+1))==index){
 					    				 
 					    				 if (newBucket.entries>=50){
-					    					 System.out.println("newBucket already has 50!");
+					    			//		 System.out.println("newBucket already has 50!");
 					    					 addSuccess = false;
 					    				 }else{
 					    					 newBucket.addEntry(newEntry); 
@@ -1038,18 +1049,18 @@ public class Prog2
 					        		 
 					        		 
 					        		 // the new "20" bucket will take the place of the old bucket "2" in the hash bucket file
-					        		 int hashBucketPtr = 0;
-					        		 if(newBucket.entries==0){
-					        			 hashBucketPtr = -99;
-					        		 }else if(index == 0){
-					        			 hashBucketPtr = directory[comparator];
-					        		 }else{
+					        		 int hashBucketPtr = -5;
+//					        		 if(newBucket.entries==0){
+//					        			 hashBucketPtr = -99;
+//					        		 if(index == 0){
+//					        			 hashBucketPtr = directory[comparator];
+//					        		 }else{
 					        			 hashBucketPtr = (int) hashBucketStream.length();
-					        		 }
+//					        		 }
 					        		 
 					        		 //update index
 					        		 int bucketIndex = ((comparator/10)*10)+index;
-					        		 System.out.println("bucketIndex is: " + bucketIndex);
+//					        		 System.out.println("bucketIndex is: " + bucketIndex);
 					        		 directory[bucketIndex] = hashBucketPtr;
 //					        		 directory[comparator] = hashBucketPtr;
 
@@ -1057,17 +1068,18 @@ public class Prog2
 					        		 newBucket.localDepth = tempBucket.localDepth+1;
 					        		 
 					        		 //write bucket to disk
-					        		 if(hashBucketPtr > -1)
-					        			 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
+//					        		 if(hashBucketPtr > -1)
+					        		 newBucket.writeBucket(hashBucketStream, hashBucketPtr);
 					        		 
 					        		 }catch(Exception e){
-					        			 System.out.println("Failure detected in SPLIT BUCKET logic");
+					        			 System.out.println("Failure detected in SPLIT BUCKET logic (-1)");
 					        			 e.printStackTrace();
 					        		 }
 					        		 
 					        	 }
 
 					         } else{ // entries are at capacity and local depth == global depth; directory needs to grow
+					        	// System.out.println("Bucket to split is at " + directory[comparator]);
 					        	 System.out.println("SPLIT DIRECTORY!!!!!!!!!!!!!!!!");
 					        	 int[] tempDir = new int[directory.length * 10];
 					        	 
@@ -1081,7 +1093,7 @@ public class Prog2
 					     				// directory[k]
 					     				for (int onesPlace = 0; onesPlace < 10; onesPlace++) {
 					     					int newIndex = (k * 10) + onesPlace;
-					     					System.out.println("newIndex is: " + newIndex);
+//					     					System.out.println("newIndex is: " + newIndex);
 					     					tempDir[newIndex] = directory[k];
 					     				}
 					     			} else { // this is the bucket we want to split
@@ -1120,14 +1132,14 @@ public class Prog2
 
 					     						// the new "20" bucket will take the place of the old
 					     						// bucket "2" in the hash bucket file
-					     						int hashBucketPtr = 0;
-					     						if (newBucket.entries == 0) {
-					     							hashBucketPtr = -99;
-					     						} else if (i == 0) {
-					     							hashBucketPtr = directory[comparator];
-					     						} else {
+					     						int hashBucketPtr = -5;
+//					     						if (newBucket.entries == 0) {
+//					     							hashBucketPtr = -99;
+//					     						if (i == 0) {
+//					     							hashBucketPtr = directory[comparator];
+//					     						} else {
 					     							hashBucketPtr = (int) hashBucketStream.length();
-					     						}
+//					     						}
 
 					     						// update index
 					     						int newIndex2 = (k * 10) + i;
@@ -1141,7 +1153,7 @@ public class Prog2
 					     						newBucket.localDepth = tempBucket.localDepth + 1;
 
 					     						// write bucket to disk
-					     						if(hashBucketPtr > -1)
+//					     						if(hashBucketPtr > -1)
 					     							newBucket.writeBucket(hashBucketStream, hashBucketPtr);
 					     					} catch (Exception e) {
 					     						System.out.println("ERROR IN SPLIT BUCKET!!!");
@@ -1164,6 +1176,18 @@ public class Prog2
 //				    }
 			    }
 		    	System.out.println("Break");
+		    	
+		    	int location = (int) hashBucketStream.length();
+		    	hashBucketStream.seek(location);
+		    	// write each pointer to the file
+		    	for(int i = 0; i < directory.length; i++){
+		    		hashBucketStream.writeInt(directory[i]);
+		    	}
+		    	
+		    	// write the location of the start of the directory
+		    	System.out.println("Location of index: " + location);
+		    	hashBucketStream.writeInt(location);
+		    	System.out.println("size of file: " + hashBucketStream.length());
 		     }catch(Exception NullPointerException){
 		    	 System.out.println("End of file!");
 		     }
@@ -1211,7 +1235,7 @@ public class Prog2
 	         /*
 	          * TEST METHODS
 	          */
-//	         dumpBuckets(hashBucketStream, directory);
+	         dumpBuckets(hashBucketStream, directory, databaseFileStream);
 	         
 	         
 
@@ -1234,44 +1258,11 @@ public class Prog2
 
 	
 
-//	     /*
-//	      * This is a utility method used to confirm the integrity of a bucket written to disk. Because testing.
-//	      */
-//	     private static void listBucketEntries(RandomAccessFile database, int pointer){
-//	    	 
-//	    	 System.out.println("In listBucketEntries...");
-//	    	 
-//	 		try {
-//				database.seek(pointer);
-//			} catch (IOException e1) {
-//				System.out.println("Failed seek with pointer in listBucketEntries");
-//				e1.printStackTrace();
-//			}
-//
-//	    		try {
-//	    			// read 800 bytes
-//	    			for(int i = 0; i < 50; i++){
-//	    				Entry printEntry = new Entry(database.readInt(), database.readInt());
-//	    				if (printEntry.key != -1){
-//	    					System.out.println(printEntry.toString());
-//	    				}
-//	    			}
-//	    			System.out.println("Local Depth: " + database.readInt());
-//	    			System.out.println("Entries count: " + database.readInt());
-//	    		} catch (IOException e) {
-//	    			System.out.println("Could not read int from bucket in listBucketEntries");
-//	    			e.printStackTrace();
-//	    		}
-//	    		
-//	    	
-//	     }
-	     
-	     
 
 		/*
 	      * This is a utility used to see the contents of every bucket written to disk
 	      */
-	     private static void dumpBuckets(RandomAccessFile buckets, int[] dir){
+	     private static void dumpBuckets(RandomAccessFile buckets, int[] dir, RandomAccessFile databaseFileStream){
 	    	 
 	    	 System.out.println("BUCKET DUMP");
 	    	 
@@ -1283,10 +1274,11 @@ public class Prog2
 				}
 //		 		for (int i = 0; i<size+1; i++){
 		 		for(int i = 0; i < dir.length; i++){
-		 			if(dir[i] != -99){
+//		 			if(dir[i] != -99){
 			 			System.out.println("BUCKET " + i + ":");
 			 			
 			 			try {
+			 				System.out.println("dir[i] is: " + dir[i]);
 				 			buckets.seek(dir[i]);
 						} catch (IOException e1) {
 							System.out.println("Failed seek with pointer in bucket dump");
@@ -1295,10 +1287,14 @@ public class Prog2
 			 			
 			    		try {
 			    			// read 800 bytes
+			    			SpmDataRecord record = new SpmDataRecord();
 			    			for(int j = 0; j < 50; j++){
 			    				Entry printEntry = new Entry(buckets.readInt(), buckets.readInt());
 			    				if (printEntry.key != -1){
 			    					System.out.println(printEntry.toString());
+			    					databaseFileStream.seek(printEntry.pointer);
+			    					record.fetchObject(databaseFileStream);
+			    					System.out.println(record.toString());
 			    				}
 			    			}
 			    			System.out.println("Local Depth: " + buckets.readInt());
@@ -1307,7 +1303,7 @@ public class Prog2
 			    			System.out.println("Could not read int from bucket in listBucketEntries");
 			    			e.printStackTrace();
 			    		}
-		 			}
+//		 			}
 		 		}
 	     }
 	     
